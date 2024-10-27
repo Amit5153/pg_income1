@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>PG Income Tracker</title>
+</head>
+<body>
+    <h2>PG Income Tracker</h2>
+
+    <form id="incomeForm">
+        <label for="guestName">Guest Name:</label>
+        <input type="text" id="guestName" placeholder="Enter guest's name" required><br>
+
+        <label for="roomNumber">Room Number:</label>
+        <input type="number" id="roomNumber" placeholder="Enter room number" required><br>
+
+        <label for="electricBill">Electric Bill (₹):</label>
+        <input type="number" id="electricBill" placeholder="Enter electric bill amount" required><br>
+
+        <label for="rent">Rent (₹):</label>
+        <input type="number" id="rent" placeholder="Enter rent amount" required><br>
+
+        <label for="commonBill">Common Bill (₹):</label>
+        <input type="number" id="commonBill" placeholder="Enter common bill amount" required><br>
+
+        <label for="utilities">Utilities:</label>
+        <input type="number" id="utilities" placeholder="Enter utilities amount" required><br>
+
+        <label for="date">Date:</label>
+        <input type="date" id="date" required><br>
+
+        <label for="monthFilter">Month:</label>
+        <select id="monthFilter" required>
+            <option value="">Select Month</option>
+            <!-- Populate month options dynamically in your script.js file -->
+        </select><br>
+
+        <label for="pg">Select PG:</label>
+        <select id="pg" required>
+            <option value="">Select PG</option>
+            <option value="PG 1">PG 1</option>
+            <option value="PG 2">PG 2</option>
+        </select><br>
+
+        <button type="submit">Add Income</button><br>      
+    </form>
+
+    <h3>Income Summary</h3>
+    <div id="incomeTableContainer">Select a month to view income data.</div>
+    <canvas id="expenseChart" width="400" height="200"></canvas>
+
+    <!-- Include jsPDF and jsPDF-AutoTable libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.13/jspdf.plugin.autotable.min.js"></script>
+    
+    <div class="button-container">
+        <button class="button button-green" onclick="downloadPDF()">Download PDF</button>
+        <button class="button button-blue" onclick="downloadCSV()">Download CSV</button>
+    </div>
+
+    <!-- Chart.js for the graph -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script src="script.js"></script>
+</body>
+</html>
