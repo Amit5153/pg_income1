@@ -5,7 +5,6 @@ window.onload = function () {
     initializeMonthFilter();
     loadIncomes();
     displayIncomeTable();
-    // updateIncomeChart();
 
     // Add event listeners to PG and month filters
     document.getElementById('pg').addEventListener('change', displayIncomeTable);
@@ -72,6 +71,7 @@ function loadIncomes() {
     }
 }
 
+// Display income table with Edit and Delete options
 function displayIncomeTable() {
     const incomeTableContainer = document.getElementById('incomeTableContainer');
     const selectedPG = document.getElementById('pg').value;
@@ -90,6 +90,7 @@ function displayIncomeTable() {
                     <th>Utilities</th>
                     <th>Total Bill</th>
                     <th>Date</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -103,8 +104,8 @@ function displayIncomeTable() {
         pgData = incomes.pg2.filter(income => income.month === selectedMonth);
     }
 
-    // Display rows for each income entry
-    pgData.forEach(income => {
+    // Display rows for each income entry with Edit and Delete buttons
+    pgData.forEach((income, index) => {
         const electricBill = Number(income.electricBill || 0);
         const commonBill = Number(income.commonBill || 0);
         const rent = Number(income.rent || 0);
@@ -122,6 +123,10 @@ function displayIncomeTable() {
                 <td>₹${utilities.toFixed(2)}</td>
                 <td>₹${totalBill.toFixed(2)}</td>
                 <td>${income.date}</td>
+                <td>
+                    <button onclick="editIncome('${selectedPG}', ${index})">Edit</button>
+                    <button onclick="deleteIncome('${selectedPG}', ${index})">Delete</button>
+                </td>
             </tr>
         `;
     });
@@ -132,7 +137,7 @@ function displayIncomeTable() {
 
     tableHTML += `
         <tr>
-            <td colspan="7"><strong>Total Income ${selectedPG}</strong></td>
+            <td colspan="8"><strong>Total Income ${selectedPG}</strong></td>
             <td colspan="2">₹${totalIncome.toFixed(2)}</td>
         </tr>
     `;
@@ -141,106 +146,152 @@ function displayIncomeTable() {
     incomeTableContainer.innerHTML = tableHTML;
 }
 
-// function downloadPDF() {
-//     const { jsPDF } = window.jspdf;
-//     const doc = new jsPDF();
+// Edit income entry
+// Edit income entry with validation
 
-//     // Retrieve selected PG and month
-//     const selectedPG = document.getElementById('pg').value;
-//     const selectedMonth = document.getElementById('monthFilter').value;
+function getPgKey(pg) {
+    return pg.replace(" ", "").toLowerCase();
+}
 
-//     // Retrieve dynamic income data and filter by selected PG and month
-//     const incomes = JSON.parse(localStorage.getItem('incomes')) || { pg1: [], pg2: [] };
-//     const incomeData = incomes[selectedPG === 'PG 1' ? 'pg1' : 'pg2']
-//         .filter(income => income.month === selectedMonth)
-//         .map(income => ({
-//             ...income,
-//             totalIncome: (income.electricBill || 0) + (income.rent || 0) + (income.commonBill || 0) + (income.utilities || 0)
-//         }));
+function editIncome(pg, index) {
+    const pgKey = getPgKey(pg); // Convert "PG 1" to "pg1"
+    if (!incomes[pgKey]) {
+        console.error(`Invalid PG value: ${pgKey}`);
+        return;
+    }
 
-//     // Calculate total income for the selected PG and month
-//     const totalIncome = incomeData.reduce((sum, income) => sum + income.totalIncome, 0);
+    const income = incomes[pgKey][index];
+    document.getElementById('pg').value = pg;
+    document.getElementById('guestName').value = income.name;
+    document.getElementById('roomNumber').value = income.room;
+    document.getElementById('rent').value = income.rent;
+    document.getElementById('electricBill').value = income.electricBill;
+    document.getElementById('commonBill').value = income.commonBill;
+    document.getElementById('utilities').value = income.utilities;
+    document.getElementById('date').value = income.date;
+    document.getElementById('monthFilter').value = income.month;
 
-//     // Define colors based on PG type
-//     const headerColor = selectedPG === 'PG 1' ? [135, 206, 250] : [255, 140, 66]; // Blue for PG 1, Orange for PG 2
-//     const footerColor = selectedPG === 'PG 1' ? [70, 130, 180] : [255, 160, 87]; // Darker blue/orange for footer
+    incomes[pgKey].splice(index, 1);
+    saveIncomes();
+}
 
-//     // Header with PG type and month
-//     doc.setFontSize(18);
-//     doc.setTextColor(255, 255, 255); // White text
-//     doc.setFillColor(...headerColor);
-//     doc.rect(0, 0, 210, 30, 'F'); // Full-width gradient header background
+function deleteIncome(pg, index) {
+    const pgKey = getPgKey(pg);
+    if (!incomes[pgKey]) {
+        console.error(`Invalid PG value: ${pgKey}`);
+        return;
+    }
 
-//     doc.text(`Guest Income Report`, 14, 15);
-//     doc.setFontSize(12);
-//     doc.text(`PG: ${selectedPG} | Month: ${selectedMonth}`, 14, 25);
-
-//     // Define table columns
-//     const columns = [
-//         { header: 'Name', dataKey: 'name' },
-//         { header: 'Room', dataKey: 'room' },
-//         { header: 'Electric Bill', dataKey: 'electricBill' },
-//         { header: 'Rent', dataKey: 'rent' },
-//         { header: 'Common Bill', dataKey: 'commonBill' },
-//         { header: 'Utilities', dataKey: 'utilities' },
-//         { header: 'Date', dataKey: 'date' },
-//         { header: 'Month', dataKey: 'month' },
-//         { header: 'Total Income', dataKey: 'totalIncome' }
-//     ];
-
-//     // Generate table with dynamic data
-//     doc.autoTable({
-//         columns: columns,
-//         body: incomeData,
-//         startY: 40,
-//         theme: 'grid',
-//         styles: {
-//             fillColor: [255, 255, 255], // White for cell background
-//             textColor: 0, // Black text
-//             fontSize: 10
-//         },
-//         headStyles: {
-//             fillColor: headerColor, // Header color based on PG type
-//             textColor: [255, 255, 255] // White text for headers
-//         },
-//         didDrawPage: (data) => {
-//             // Total income footer
-//             doc.setFontSize(12);
-//             doc.setTextColor(255, 255, 255);
-//             doc.setFillColor(...footerColor);
-//             doc.rect(0, data.cursor.y + 10, 210, 10, 'F'); // Full-width footer background
-//             doc.text(`Total Income (${selectedPG}, ${selectedMonth}): ₹${totalIncome.toFixed(2)}`, 14, data.cursor.y + 18);
-//         }
-//     });
-
-//     // Save the PDF
-//     doc.save(`Guest_Income_Report_${selectedPG}_${selectedMonth}.pdf`);
-// }
+    if (confirm("Are you sure you want to delete this entry?")) {
+        incomes[pgKey].splice(index, 1);
+        saveIncomes();
+        displayIncomeTable();
+    }
+}
 
 
-// function downloadCSV() {
-//     const incomeTable = document.getElementById('incomeTableContainer').getElementsByTagName('table')[0];
-//     let csvContent = "";
+
+
+function downloadPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Retrieve selected PG and month
+    const selectedPG = document.getElementById('pg').value;
+    const selectedMonth = document.getElementById('monthFilter').value;
+
+    // Retrieve dynamic income data and filter by selected PG and month
+    const incomes = JSON.parse(localStorage.getItem('incomes')) || { pg1: [], pg2: [] };
+    const incomeData = incomes[selectedPG === 'PG 1' ? 'pg1' : 'pg2']
+        .filter(income => income.month === selectedMonth)
+        .map(income => ({
+            ...income,
+            totalIncome: (income.electricBill || 0) + (income.rent || 0) + (income.commonBill || 0) + (income.utilities || 0)
+        }));
+
+    // Calculate total income for the selected PG and month
+    const totalIncome = incomeData.reduce((sum, income) => sum + income.totalIncome, 0);
+
+    // Define colors based on PG type
+    const headerColor = selectedPG === 'PG 1' ? [135, 206, 250] : [255, 140, 66]; // Blue for PG 1, Orange for PG 2
+    const footerColor = selectedPG === 'PG 1' ? [70, 130, 180] : [255, 160, 87]; // Darker blue/orange for footer
+
+    // Header with PG type and month
+    doc.setFontSize(18);
+    doc.setTextColor(255, 255, 255); // White text
+    doc.setFillColor(...headerColor);
+    doc.rect(0, 0, 210, 30, 'F'); // Full-width gradient header background
+
+    doc.text(`Guest Income Report`, 14, 15);
+    doc.setFontSize(12);
+    doc.text(`PG: ${selectedPG} | Month: ${selectedMonth}`, 14, 25);
+
+    // Define table columns
+    const columns = [
+        { header: 'Name', dataKey: 'name' },
+        { header: 'Room', dataKey: 'room' },
+        { header: 'Electric Bill', dataKey: 'electricBill' },
+        { header: 'Rent', dataKey: 'rent' },
+        { header: 'Common Bill', dataKey: 'commonBill' },
+        { header: 'Utilities', dataKey: 'utilities' },
+        { header: 'Date', dataKey: 'date' },
+        { header: 'Month', dataKey: 'month' },
+        { header: 'Total Income', dataKey: 'totalIncome' }
+    ];
+
+    // Generate table with dynamic data
+    doc.autoTable({
+        columns: columns,
+        body: incomeData,
+        startY: 40,
+        theme: 'grid',
+        styles: {
+            fillColor: [255, 255, 255], // White for cell background
+            textColor: 0, // Black text
+            fontSize: 10
+        },
+        headStyles: {
+            fillColor: headerColor, // Header color based on PG type
+            textColor: [255, 255, 255] // White text for headers
+        },
+        didDrawPage: (data) => {
+            // Total income footer
+            doc.setFontSize(12);
+            doc.setTextColor(255, 255, 255);
+            doc.setFillColor(...footerColor);
+            doc.rect(0, data.cursor.y + 10, 210, 10, 'F'); // Full-width footer background
+            doc.text(`Total Income (${selectedPG}, ${selectedMonth}): ₹${totalIncome.toFixed(2)}`, 14, data.cursor.y + 18);
+        }
+    });
+
+    // Save the PDF
+    doc.save(`Guest_Income_Report_${selectedPG}_${selectedMonth}.pdf`);
+}
+
+
+function downloadCSV() {
+    const incomeTable = document.getElementById('incomeTableContainer').getElementsByTagName('table')[0];
+    let csvContent = "";
     
-//     // Get the headers
-//     Array.from(incomeTable.rows[0].cells).forEach(cell => {
-//         csvContent += cell.textContent + ",";
-//     });
-//     csvContent += "\n";
+    // Get the headers
+    Array.from(incomeTable.rows[0].cells).forEach(cell => {
+        csvContent += cell.textContent + ",";
+    });
+    csvContent += "\n";
 
-//     // Get each row
-//     Array.from(incomeTable.rows).slice(1).forEach(row => {
-//         Array.from(row.cells).forEach(cell => {
-//             csvContent += cell.textContent + ",";
-//         });
-//         csvContent += "\n";
-//     });
+    // Get each row
+    Array.from(incomeTable.rows).slice(1).forEach(row => {
+        Array.from(row.cells).forEach(cell => {
+            csvContent += cell.textContent + ",";
+        });
+        csvContent += "\n";
+    });
 
-//     // Create a downloadable link
-//     const blob = new Blob([csvContent], { type: 'text/csv' });
-//     const url = window.URL.createObjectURL(blob);
-//     const a = document.createElement('a');
-//     a.setAttribute('href', url);
-//     a.setAttribute('download', 'Income_Report.csv');
-//     a.click();
-// }
+    // Create a downloadable link
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'Income_Report.csv');
+    a.click();
+}
