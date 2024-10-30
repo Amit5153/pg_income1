@@ -192,15 +192,17 @@ function deleteIncome(pg, index) {
 
 
 
+
 function downloadPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-
+   
+  
     // Retrieve selected PG and month
     const selectedPG = document.getElementById('pg').value;
     const selectedMonth = document.getElementById('monthFilter').value;
 
-    // Retrieve dynamic income data and filter by selected PG and month
+    // Retrieve income data and filter by selected PG and month
     const incomes = JSON.parse(localStorage.getItem('incomes')) || { pg1: [], pg2: [] };
     const incomeData = incomes[selectedPG === 'PG 1' ? 'pg1' : 'pg2']
         .filter(income => income.month === selectedMonth)
@@ -211,6 +213,15 @@ function downloadPDF() {
 
     // Calculate total income for the selected PG and month
     const totalIncome = incomeData.reduce((sum, income) => sum + income.totalIncome, 0);
+
+    // Calculate total incomes for both PGs for the selected month
+    const totalIncomePG1 = (incomes.pg1 || []).filter(income => income.month === selectedMonth)
+        .reduce((sum, income) => sum + ((income.electricBill || 0) + (income.rent || 0) + (income.commonBill || 0) + (income.utilities || 0)), 0);
+    const totalIncomePG2 = (incomes.pg2 || []).filter(income => income.month === selectedMonth)
+        .reduce((sum, income) => sum + ((income.electricBill || 0) + (income.rent || 0) + (income.commonBill || 0) + (income.utilities || 0)), 0);
+    
+    // Calculate the grand total income (PG1 + PG2)
+    const grandTotalIncome = totalIncomePG1 + totalIncomePG2;
 
     // Define colors based on PG type
     const headerColor = selectedPG === 'PG 1' ? [135, 206, 250] : [255, 140, 66]; // Blue for PG 1, Orange for PG 2
@@ -240,6 +251,7 @@ function downloadPDF() {
     ];
 
     // Generate table with dynamic data
+    let pageNumber = 1;
     doc.autoTable({
         columns: columns,
         body: incomeData,
@@ -255,15 +267,37 @@ function downloadPDF() {
             textColor: [255, 255, 255] // White text for headers
         },
         didDrawPage: (data) => {
-            // Total income footer
+            // Footer with total income for the selected PG
             doc.setFontSize(12);
             doc.setTextColor(255, 255, 255);
             doc.setFillColor(...footerColor);
             doc.rect(0, data.cursor.y + 10, 210, 10, 'F'); // Full-width footer background
             doc.text(`Total Income (${selectedPG}, ${selectedMonth}): ₹${totalIncome.toFixed(2)}`, 14, data.cursor.y + 18);
+
+            // Footer for page number and date
+            const currentDate = new Date().toLocaleDateString();
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0); // Black text for page number and date
+            doc.text(`Page ${pageNumber}`, 190, 290); // Page number at bottom-right
+            doc.text(`Date: ${currentDate}`, 14, 290); // Date at bottom-left
+            pageNumber += 1;
         }
     });
 
+    // Add the combined income section at the bottom or on a new page if needed
+    const lastPositionY = doc.lastAutoTable.finalY + 20;
+    if (lastPositionY > 270) {
+        doc.addPage();
+        pageNumber += 1;
+    }
+    doc.setFillColor(240, 240, 240); // Light grey background for the summary box
+    doc.rect(10, lastPositionY > 270 ? 20 : lastPositionY, 190, 30, 'F'); // Rectangle for the combined income section
+    doc.setTextColor(0, 0, 0); // Black text
+    doc.setFontSize(14);
+    // Display the income summary with reduced spacing between lines
+    doc.text(`Total Income for PG 1: ₹${totalIncomePG1.toFixed(1)}`, 14, lastPositionY > 270 ? 28 : lastPositionY + 5);
+    doc.text(`Total Income for PG 2: ₹${totalIncomePG2.toFixed(1)}`, 14, lastPositionY > 270 ? 35 : lastPositionY + 10);
+    doc.text(`Grand Total Income (PG 1 + PG 2): ₹${grandTotalIncome.toFixed(2)}`, 14, lastPositionY > 270 ? 42 : lastPositionY + 15);
     // Save the PDF
     doc.save(`Guest_Income_Report_${selectedPG}_${selectedMonth}.pdf`);
 }
